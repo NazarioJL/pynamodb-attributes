@@ -44,12 +44,14 @@ class UnicodeDelimitedTupleAttribute(Attribute[T]):
         self.delimiter = delimiter
 
     def deserialize(self, value: str) -> T:
-        fields = getattr(self.tuple_type, "_fields", None)
-        field_types = getattr(self.tuple_type, "_field_types", None)
-        if fields and field_types:
-            values = value.split(self.delimiter, maxsplit=len(fields))
+        annotations = getattr(self.tuple_type, "__annotations__", None)
+        if annotations:
+            values = value.split(self.delimiter, maxsplit=len(annotations))
             return self.tuple_type(
-                **{f: field_types[f](v) for f, v in zip(fields, values)}
+                **{
+                    f: self._parse_value(v, annotations[f])
+                    for f, v in zip(annotations, values)
+                }
             )
         else:
             return self.tuple_type(value.split(self.delimiter))
@@ -68,3 +70,20 @@ class UnicodeDelimitedTupleAttribute(Attribute[T]):
                 f"Tuple elements may not contain delimiter '{self.delimiter}'",
             )
         return self.delimiter.join(strings)
+
+    def _parse_value(self, str_value: str, type_: Type[Any]) -> Any:
+        if hasattr(type_, "__args__"):
+            for t in type_.__args__:
+                if isinstance(None, t):
+                    continue
+                try:
+                    return t(str_value)
+                except ValueError:
+                    pass
+            list_of_types = ", ".join(t.__name__ for t in type_.__args__)
+            raise ValueError(
+                f"Unable to parse value: '{str_value}' for any of the "
+                f"following types: '[{list_of_types}]'",
+            )
+        else:
+            return type_(str_value)
