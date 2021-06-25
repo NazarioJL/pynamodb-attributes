@@ -7,8 +7,8 @@ from typing import TypeVar
 import pynamodb.constants
 from pynamodb.attributes import Attribute
 
-T = TypeVar('T', bound=Tuple[Any, ...])
-_DEFAULT_FIELD_DELIMITER = '::'
+T = TypeVar("T", bound=Tuple[Any, ...])
+_DEFAULT_FIELD_DELIMITER = "::"
 
 
 class UnicodeDelimitedTupleAttribute(Attribute[T]):
@@ -29,7 +29,12 @@ class UnicodeDelimitedTupleAttribute(Attribute[T]):
 
     attr_type = pynamodb.constants.STRING
 
-    def __init__(self, tuple_type: Type[T], delimiter: str = _DEFAULT_FIELD_DELIMITER, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        tuple_type: Type[T],
+        delimiter: str = _DEFAULT_FIELD_DELIMITER,
+        **kwargs: Any,
+    ) -> None:
         """
         :param tuple_type: The type of the tuple -- may be a named or plain tuple
         :param delimiter: The delimiter to separate the tuple elements
@@ -39,21 +44,46 @@ class UnicodeDelimitedTupleAttribute(Attribute[T]):
         self.delimiter = delimiter
 
     def deserialize(self, value: str) -> T:
-        fields = getattr(self.tuple_type, '_fields', None)
-        field_types = getattr(self.tuple_type, '_field_types', None)
-        if fields and field_types:
-            values = value.split(self.delimiter, maxsplit=len(fields))
-            return self.tuple_type(**{f: field_types[f](v) for f, v in zip(fields, values)})
+        annotations = getattr(self.tuple_type, "__annotations__", None)
+        if annotations:
+            values = value.split(self.delimiter, maxsplit=len(annotations))
+            return self.tuple_type(
+                **{
+                    f: self._parse_value(v, annotations[f])
+                    for f, v in zip(annotations, values)
+                }
+            )
         else:
             return self.tuple_type(value.split(self.delimiter))
 
     def serialize(self, value: T) -> str:
         if not isinstance(value, self.tuple_type):
-            raise TypeError(f"value has invalid type '{type(value)}'; expected '{self.tuple_type}'")
+            raise TypeError(
+                f"value has invalid type '{type(value)}'; expected '{self.tuple_type}'",
+            )
         values: List[T] = list(value)
         while values and values[-1] is None:
             del values[-1]
         strings = [str(e) for e in values]
         if any(self.delimiter in s for s in strings):
-            raise ValueError(f"Tuple elements may not contain delimiter '{self.delimiter}'")
+            raise ValueError(
+                f"Tuple elements may not contain delimiter '{self.delimiter}'",
+            )
         return self.delimiter.join(strings)
+
+    def _parse_value(self, str_value: str, type_: Type[Any]) -> Any:
+        if hasattr(type_, "__args__"):
+            for t in type_.__args__:
+                if isinstance(None, t):
+                    continue
+                try:
+                    return t(str_value)
+                except ValueError:
+                    pass
+            list_of_types = ", ".join(t.__name__ for t in type_.__args__)
+            raise ValueError(
+                f"Unable to parse value: '{str_value}' for any of the "
+                f"following types: '[{list_of_types}]'",
+            )
+        else:
+            return type_(str_value)
