@@ -8,22 +8,24 @@ from .timedelta import TimedeltaUsAttribute
 from .timestamp import TimestampAttribute
 from .timestamp import TimestampMsAttribute
 from .timestamp import TimestampUsAttribute
+from .unicode_datetime import UnicodeDatetimeAttribute
 from .unicode_delimited_tuple import UnicodeDelimitedTupleAttribute
 from .unicode_enum import UnicodeEnumAttribute
 from .uuid import UUIDAttribute
 
 __all__ = [
-    'FloatAttribute',
-    'IntegerAttribute',
-    'IntegerDateAttribute',
-    'IntegerEnumAttribute',
-    'UnicodeDelimitedTupleAttribute',
-    'UnicodeEnumAttribute',
-    'TimedeltaAttribute',
-    'TimedeltaMsAttribute',
-    'TimedeltaUsAttribute',
-    'TimestampAttribute',
-    'TimestampMsAttribute',
-    'TimestampUsAttribute',
-    'UUIDAttribute',
+    "FloatAttribute",
+    "IntegerAttribute",
+    "IntegerDateAttribute",
+    "IntegerEnumAttribute",
+    "UnicodeDelimitedTupleAttribute",
+    "UnicodeEnumAttribute",
+    "TimedeltaAttribute",
+    "TimedeltaMsAttribute",
+    "TimedeltaUsAttribute",
+    "TimestampAttribute",
+    "TimestampMsAttribute",
+    "TimestampUsAttribute",
+    "UUIDAttribute",
+    "UnicodeDatetimeAttribute",
 ]
